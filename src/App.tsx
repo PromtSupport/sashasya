@@ -62,12 +62,12 @@ export default function App() {
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-[#030303] relative overflow-hidden">
-        {/* Dynamic Abstract Geometric Elements for Auth Page */}
-        <div className="absolute inset-0 z-0 pointer-events-none mix-blend-screen opacity-30">
-          <motion.div animate={{ rotate: [0, 90, 180, 270, 360], scale: [1, 1.2, 1] }} transition={{ duration: 25, repeat: Infinity, ease: "linear" }} className="absolute -top-[10%] -left-[10%] w-[60vw] h-[60vw] border-[1px] border-indigo-500/10 rounded-full" />
-          <motion.div animate={{ rotate: [360, 270, 180, 90, 0], scale: [1, 1.3, 1] }} transition={{ duration: 30, repeat: Infinity, ease: "linear" }} className="absolute top-[20%] -right-[20%] w-[70vw] h-[70vw] border-[1px] border-purple-500/10 rounded-full" />
+        {/* Static Abstract Geometric Elements for Auth Page */}
+        <div className="absolute inset-0 z-0 pointer-events-none opacity-20">
+          <div className="absolute -top-[10%] -left-[10%] w-[60vw] h-[60vw] border-[1px] border-indigo-500/10 rounded-full" />
+          <div className="absolute top-[20%] -right-[20%] w-[70vw] h-[70vw] border-[1px] border-purple-500/10 rounded-full" />
         </div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-indigo-600/20 blur-[100px] rounded-full pointer-events-none mix-blend-screen" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-indigo-600/20 blur-[80px] rounded-full pointer-events-none" />
 
         <motion.div 
           initial={{ opacity: 0, y: 30, scale: 0.95 }}
@@ -76,14 +76,12 @@ export default function App() {
           className="w-full max-w-sm flex flex-col items-center relative p-8 glass-panel rounded-[2.5rem]"
         >
           <div className="relative z-10 flex flex-col items-center w-full">
-            <motion.div 
-              whileHover={{ scale: 1.1 }}
-              transition={{ duration: 0.6, ease: "easeInOut" }}
-              className="w-64 h-64 mb-8 flex items-center justify-center cursor-pointer relative"
+            <div 
+              className="w-64 h-64 mb-8 flex items-center justify-center relative"
             >
-              <div className="absolute inset-2 custom-pulse bg-indigo-500/30 blur-xl rounded-full" />
-              <img src="https://i.ibb.co/Lz5djnMx/Promt-Support-logo-2-P-S-removebg-preview.png" alt="PS" className="w-56 h-56 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.4)] relative z-10" />
-            </motion.div>
+              <div className="absolute inset-2 bg-indigo-500/10 blur-xl rounded-full" />
+              <img src="https://i.ibb.co/Lz5djnMx/Promt-Support-logo-2-P-S-removebg-preview.png" alt="PS" className="w-56 h-56 object-contain drop-shadow-lg relative z-10" />
+            </div>
             <h1 className="text-3xl font-medium tracking-tight text-white mb-2 font-serif text-center">
               Prompt <span className="italic text-zinc-500">&</span> Support
             </h1>
@@ -130,19 +128,19 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col relative bg-[#030303] pb-32 overflow-hidden selection:bg-indigo-500/30">
       
-      {/* Ambient Moving Orbs Overlay */}
-      <div className="fixed inset-0 z-0 pointer-events-none flex items-center justify-center opacity-40 mix-blend-screen">
-         <motion.div animate={{ rotate: 360 }} transition={{ duration: 150, repeat: Infinity, ease: "linear" }} className="absolute w-[150vw] h-[150vw]">
-            <div className="absolute top-[20%] left-[20%] w-[40%] h-[40%] bg-indigo-500/20 blur-[120px] rounded-full mix-blend-screen" />
-            <div className="absolute bottom-[20%] right-[20%] w-[30%] h-[30%] bg-sky-500/10 blur-[120px] rounded-full mix-blend-screen" />
-            <div className="absolute top-[40%] right-[30%] w-[20%] h-[20%] bg-purple-500/10 blur-[100px] rounded-full mix-blend-screen" />
-         </motion.div>
+      {/* Ambient Moving Orbs Overlay (Optimized) */}
+      <div className="fixed inset-0 z-0 pointer-events-none flex items-center justify-center opacity-30">
+         <div className="absolute w-[150vw] h-[150vw]">
+            <div className="absolute top-[20%] left-[20%] w-[40%] h-[40%] bg-indigo-500/20 blur-[80px] rounded-full" />
+            <div className="absolute bottom-[20%] right-[20%] w-[30%] h-[30%] bg-sky-500/10 blur-[80px] rounded-full" />
+            <div className="absolute top-[40%] right-[30%] w-[20%] h-[20%] bg-purple-500/10 blur-[80px] rounded-full" />
+         </div>
       </div>
 
       <header className="px-6 sm:px-12 pt-8 flex items-center justify-between z-40 relative">
         <div className="flex items-center space-x-4">
           <div className="flex items-center justify-center shrink-0">
-            <img src="https://i.ibb.co/Lz5djnMx/Promt-Support-logo-2-P-S-removebg-preview.png" alt="PS" className="h-32 w-auto object-contain opacity-90 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]" />
+            <img src="https://i.ibb.co/Lz5djnMx/Promt-Support-logo-2-P-S-removebg-preview.png" alt="PS" className="h-32 w-auto object-contain opacity-90 drop-shadow-md" />
           </div>
           <div className="flex flex-col">
             <span className="text-xl font-serif font-medium tracking-wide text-white leading-tight">
