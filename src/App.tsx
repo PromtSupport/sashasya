@@ -67,7 +67,7 @@ export default function App() {
           <div className="absolute -top-[10%] -left-[10%] w-[60vw] h-[60vw] border-[1px] border-indigo-500/10 rounded-full" />
           <div className="absolute top-[20%] -right-[20%] w-[70vw] h-[70vw] border-[1px] border-purple-500/10 rounded-full" />
         </div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-indigo-600/20 blur-[80px] rounded-full pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-[radial-gradient(circle_at_center,rgba(79,70,229,0.15)_0%,transparent_70%)] rounded-full pointer-events-none" />
 
         <motion.div 
           initial={{ opacity: 0, y: 30, scale: 0.95 }}
@@ -77,10 +77,10 @@ export default function App() {
         >
           <div className="relative z-10 flex flex-col items-center w-full">
             <div 
-              className="w-64 h-64 mb-8 flex items-center justify-center relative"
+              className="w-48 h-48 sm:w-64 sm:h-64 mb-8 flex items-center justify-center relative"
             >
-              <div className="absolute inset-2 bg-indigo-500/10 blur-xl rounded-full" />
-              <img src="https://i.ibb.co/Lz5djnMx/Promt-Support-logo-2-P-S-removebg-preview.png" alt="PS" className="w-56 h-56 object-contain drop-shadow-lg relative z-10" />
+              <div className="absolute inset-2 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.15)_0%,transparent_70%)] rounded-full" />
+              <img src="https://i.ibb.co/Lz5djnMx/Promt-Support-logo-2-P-S-removebg-preview.png" alt="PS" className="w-40 h-40 sm:w-56 sm:h-56 object-contain drop-shadow-lg relative z-10" />
             </div>
             <h1 className="text-3xl font-medium tracking-tight text-white mb-2 font-serif text-center">
               Prompt <span className="italic text-zinc-500">&</span> Support
@@ -131,19 +131,19 @@ export default function App() {
       {/* Ambient Moving Orbs Overlay (Optimized) */}
       <div className="fixed inset-0 z-0 pointer-events-none flex items-center justify-center opacity-30">
          <div className="absolute w-[150vw] h-[150vw]">
-            <div className="absolute top-[20%] left-[20%] w-[40%] h-[40%] bg-indigo-500/20 blur-[80px] rounded-full" />
-            <div className="absolute bottom-[20%] right-[20%] w-[30%] h-[30%] bg-sky-500/10 blur-[80px] rounded-full" />
-            <div className="absolute top-[40%] right-[30%] w-[20%] h-[20%] bg-purple-500/10 blur-[80px] rounded-full" />
+            <div className="absolute top-[20%] left-[20%] w-[40%] h-[40%] bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.15)_0%,transparent_60%)] rounded-full" />
+            <div className="absolute bottom-[20%] right-[20%] w-[30%] h-[30%] bg-[radial-gradient(circle_at_center,rgba(14,165,233,0.1)_0%,transparent_60%)] rounded-full" />
+            <div className="absolute top-[40%] right-[30%] w-[20%] h-[20%] bg-[radial-gradient(circle_at_center,rgba(168,85,247,0.1)_0%,transparent_60%)] rounded-full" />
          </div>
       </div>
 
-      <header className="px-6 sm:px-12 pt-8 flex items-center justify-between z-40 relative">
-        <div className="flex items-center space-x-4">
+      <header className="px-4 sm:px-12 pt-6 sm:pt-8 flex items-center justify-between z-40 relative">
+        <div className="flex items-center gap-2 sm:space-x-4">
           <div className="flex items-center justify-center shrink-0">
-            <img src="https://i.ibb.co/Lz5djnMx/Promt-Support-logo-2-P-S-removebg-preview.png" alt="PS" className="h-32 w-auto object-contain opacity-90 drop-shadow-md" />
+            <img src="https://i.ibb.co/Lz5djnMx/Promt-Support-logo-2-P-S-removebg-preview.png" alt="PS" className="h-16 sm:h-24 md:h-32 w-auto object-contain opacity-90 drop-shadow-md" />
           </div>
           <div className="flex flex-col">
-            <span className="text-xl font-serif font-medium tracking-wide text-white leading-tight">
+            <span className="text-base sm:text-xl font-serif font-medium tracking-wide text-white leading-tight whitespace-nowrap">
               Prompt <span className="italic text-zinc-500">&</span> Support
             </span>
           </div>
@@ -156,14 +156,14 @@ export default function App() {
         </div>
       </header>
       
-      <main className="max-w-7xl mx-auto w-full px-6 sm:px-12 pt-12 flex-grow relative z-10">
-        <AnimatePresence mode="wait">
+      <main className="max-w-7xl mx-auto w-full px-6 sm:px-12 pt-4 sm:pt-12 pb-32 flex-grow relative z-10">
+        <AnimatePresence mode="popLayout">
           <motion.div
             key={activeTab}
-            initial={{ opacity: 0, y: 20, filter: 'blur(10px)', scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, filter: 'blur(0px)', scale: 1 }}
-            exit={{ opacity: 0, y: -20, filter: 'blur(10px)', scale: 0.98 }}
-            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            initial={{ opacity: 0, y: 15, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -15, scale: 0.98 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
           >
             {renderContent()}
           </motion.div>

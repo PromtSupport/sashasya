@@ -49,7 +49,7 @@ export function MetricsModule() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row justify-between items-end border-b border-white/[0.08] pb-6 mb-8 gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end border-b border-white/[0.08] pb-6 mb-8 gap-4">
         <div>
           <h2 className="text-4xl font-serif text-white tracking-wide">Метрики</h2>
           <p className="text-zinc-500 text-sm mt-2 font-light">Аналитика поиска и данные производительности</p>
