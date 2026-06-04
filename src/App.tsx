@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, User, updateProfile } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, query, orderBy, limit, onSnapshot, where } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { motion, AnimatePresence } from 'motion/react';
 import { Folder, Layers, Calendar, Lock, LogOut, Activity, User as UserIcon, Users, Bell } from 'lucide-react';
@@ -77,6 +77,83 @@ export default function App() {
       if (heartbeatInterval) clearInterval(heartbeatInterval);
     };
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    
+    // Request permission once logged in
+    if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+        Notification.requestPermission();
+    }
+
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(err => {
+            console.log('Service Worker registration failed: ', err);
+        });
+    }
+
+    const showNotification = async (title: string, options: NotificationOptions) => {
+        try {
+            if ('serviceWorker' in navigator) {
+                const reg = await navigator.serviceWorker.ready;
+                if (reg) {
+                    await reg.showNotification(title, options);
+                    return;
+                }
+            }
+            new Notification(title, options);
+        } catch (e) {
+            console.log("Notification fallback failed", e);
+        }
+    };
+    
+    let isInitialActivities = true;
+    const unsubActivities = onSnapshot(query(collection(db, 'activities'), orderBy('createdAt', 'desc'), limit(1)), (snap) => {
+        if (isInitialActivities) {
+            isInitialActivities = false;
+            return;
+        }
+        snap.docChanges().forEach(change => {
+            if (change.type === 'added') {
+                const data = change.doc.data();
+                if (data.userId !== user.uid && 'Notification' in window && Notification.permission === 'granted') {
+                    if (document.hidden) {
+                        showNotification('Новая активность', {
+                            body: `${data.userName || 'Кто-то'} ${data.action} ${data.targetName || ''}`,
+                            icon: '/vite.svg'
+                        });
+                    }
+                }
+            }
+        });
+    });
+
+    let isInitialMessages = true;
+    const unsubMessages = onSnapshot(query(collection(db, 'messages'), orderBy('createdAt', 'desc'), limit(1)), (snap) => {
+        if (isInitialMessages) {
+            isInitialMessages = false;
+            return;
+        }
+        snap.docChanges().forEach(change => {
+             if (change.type === 'added') {
+                 const data = change.doc.data();
+                 if (data.senderId !== user.uid && 'Notification' in window && Notification.permission === 'granted') {
+                     if (document.hidden) {
+                         showNotification('Новое сообщение', {
+                             body: `${data.senderName || 'Аноним'}: ${data.text}`,
+                             icon: '/vite.svg'
+                         });
+                     }
+                 }
+             }
+        });
+    });
+
+    return () => {
+        unsubActivities();
+        unsubMessages();
+    };
+  }, [user]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();

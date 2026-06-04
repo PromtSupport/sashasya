@@ -86,38 +86,77 @@ export function StorageModule() {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    // Firestore doc limit is 1MB, so limit to 500KB to account for Base64 bloat
-    if(file.size > 500 * 1024) {
-      alert("Файл слишком велик. Максимальный размер 500 KB для демо-версии. Фото с телефона обычно больше, пожалуйста, используйте сжатые картинки.");
+    const isImg = file.type.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|heic)$/i.test(file.name);
+
+    if (!isImg && file.size > 800 * 1024) {
+      alert("Не-графические файлы ограничены 800 KB. Загружайте текстовые или сжатые файлы.");
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const base64 = event.target?.result as string;
+    try {
       const user = auth.currentUser;
+      let base64 = "";
+      let finalSize = formatSize(file.size);
       
-      try {
-        await addDoc(collection(db, 'files'), {
-          name: file.name,
-          parentId: currentFolderId,
-          size: formatSize(file.size),
-          type: file.type || 'application/octet-stream',
-          content: base64,
-          uploaderId: user?.uid || null,
-          uploaderName: user?.displayName || user?.email || 'Unknown',
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
+      if (isImg) {
+        base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = event => {
+            const img = new Image();
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              let { width, height } = img;
+              const MAX = 1200;
+              if (width > height && width > MAX) { height *= MAX / width; width = MAX; }
+              else if (height > MAX) { width *= MAX / height; height = MAX; }
+              canvas.width = width; canvas.height = height;
+              const ctx = canvas.getContext('2d');
+              ctx?.drawImage(img, 0, 0, width, height);
+              resolve(canvas.toDataURL('image/jpeg', 0.6));
+            };
+            img.onerror = reject;
+            img.src = event.target?.result as string;
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
         });
         
-        const isImg = file.type.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|heic)$/i.test(file.name);
-        await logActivity(isImg ? "загрузил(а) фото" : "загрузил(а) файл", file.name);
-      } catch (err) {
-        console.error("Upload error", err);
-        alert("Ошибка при загрузке файла");
+        // Approximate the base64 size back to bytes
+        const approxBytes = Math.round((base64.length * 3) / 4);
+        finalSize = formatSize(approxBytes);
+
+        if (approxBytes > 1000 * 1024) {
+            alert("Изображение все еще слишком велико после сжатия. Пожалуйста, сожмите его вручную.");
+            return;
+        }
+
+      } else {
+        base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = e => resolve(e.target?.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
       }
-    };
-    reader.readAsDataURL(file);
+
+      await addDoc(collection(db, 'files'), {
+        name: file.name,
+        parentId: currentFolderId,
+        size: finalSize,
+        type: file.type || 'application/octet-stream',
+        content: base64,
+        uploaderId: user?.uid || null,
+        uploaderName: user?.displayName || user?.email || 'Unknown',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+      
+      await logActivity(isImg ? "загрузил(а) фото" : "загрузил(а) файл", file.name);
+    } catch (err) {
+      console.error("Upload error", err);
+      alert("Ошибка при загрузке. Файл может быть слишком большим.");
+    }
+    
     if(fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -143,19 +182,19 @@ export function StorageModule() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 border-b border-white/[0.08] pb-6 mb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-5 border-b border-white/[0.08] pb-6 mb-8">
         <div>
-          <h2 className="text-4xl font-serif text-white tracking-wide">Хранилище</h2>
+          <h2 className="text-3xl sm:text-4xl font-serif text-white tracking-wide">Хранилище</h2>
           <p className="text-zinc-500 text-sm mt-2 font-light">Общие файлы и директории</p>
         </div>
         
-        <div className="flex items-center space-x-3">
-          <button onClick={() => setIsAddingFolder(true)} className="btn-secondary py-2 px-5 text-sm flex items-center gap-2">
-            <FolderIcon className="w-4 h-4" /> Новая Папка
+        <div className="flex w-full sm:w-auto items-center gap-2 sm:space-x-3">
+          <button onClick={() => setIsAddingFolder(true)} className="btn-secondary flex-1 sm:flex-none py-2.5 px-3 sm:px-5 text-sm flex justify-center items-center gap-2">
+            <FolderIcon className="w-4 h-4" /> Папка
           </button>
           
           <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
-          <button onClick={() => fileInputRef.current?.click()} className="btn-primary py-2 px-5 text-sm flex items-center gap-2">
+          <button onClick={() => fileInputRef.current?.click()} className="btn-primary flex-1 sm:flex-none py-2.5 px-3 sm:px-5 text-sm flex justify-center items-center gap-2">
              <Upload className="w-4 h-4"/> Загрузить
           </button>
         </div>
@@ -233,22 +272,22 @@ export function StorageModule() {
       </div>
 
       {editingFile && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-50 flex items-center justify-center p-4 sm:p-8">
-           <div className="glass-panel w-full max-w-4xl h-[85vh] rounded-[2rem] flex flex-col p-8">
-              <div className="flex justify-between items-center pb-6 border-b border-white/[0.05]">
-                 <div>
-                   <h3 className="text-xl font-serif text-white tracking-wide mb-1">Текстовый Редактор</h3>
-                   <p className="text-xs text-zinc-500 font-mono">{editingFile.name} • {editingFile.size}</p>
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-50 flex items-center justify-center p-0 sm:p-4 sm:p-8">
+           <div className="glass-panel w-full sm:max-w-4xl h-full sm:h-[85vh] sm:rounded-[2rem] flex flex-col p-4 sm:p-8">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 sm:pb-6 border-b border-white/[0.05]">
+                 <div className="overflow-hidden w-full">
+                   <h3 className="text-lg sm:text-xl font-serif text-white tracking-wide mb-1 truncate">{editingFile.name}</h3>
+                   <p className="text-[10px] sm:text-xs text-zinc-500 font-mono">{editingFile.size}</p>
                  </div>
-                 <div className="flex gap-3">
-                    <button onClick={() => setEditingFile(null)} className="btn-secondary px-6 py-2.5 text-xs">Закрыть</button>
-                    <button onClick={saveFileContent} className="btn-primary px-6 py-2.5 text-xs flex items-center gap-2"><Save className="w-3.5 h-3.5"/> Сохранить Документ</button>
+                 <div className="flex gap-2 w-full sm:w-auto">
+                    <button onClick={saveFileContent} className="btn-primary flex-1 sm:flex-none px-4 sm:px-6 py-2.5 text-xs flex justify-center items-center gap-2"><Save className="w-3.5 h-3.5"/> Сохранить</button>
+                    <button onClick={() => setEditingFile(null)} className="btn-secondary flex-1 sm:flex-none px-4 sm:px-6 py-2.5 text-xs">Закрыть</button>
                  </div>
               </div>
               <textarea 
                 value={editingFile.content} 
                 onChange={(e) => setEditingFile({ ...editingFile, content: e.target.value })}
-                className="flex-grow mt-6 bg-transparent rounded-xl text-sm font-mono text-zinc-300 resize-none outline-none leading-relaxed"
+                className="flex-grow mt-4 sm:mt-6 bg-transparent rounded-xl text-xs sm:text-sm font-mono text-zinc-300 resize-none outline-none leading-relaxed"
                 placeholder="Начните печатать..."
               />
            </div>
@@ -256,22 +295,23 @@ export function StorageModule() {
       )}
 
       {viewingFile && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-50 flex items-center justify-center p-4 sm:p-8" onClick={() => setViewingFile(null)}>
-           <div className="relative max-w-5xl max-h-[90vh]" onClick={e => e.stopPropagation()}>
-              <button onClick={() => setViewingFile(null)} className="absolute -top-12 right-0 text-white hover:text-zinc-300">
-                <X className="w-8 h-8" />
-              </button>
-              <img src={viewingFile.content} alt={viewingFile.name} className="w-auto h-auto max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl" />
-              <div className="absolute -bottom-16 left-0 right-0 flex justify-between items-start text-white">
-                 <div className="flex flex-col">
-                   <span className="font-medium text-lg">{viewingFile.name}</span>
-                   <span className="text-sm text-zinc-400">Загрузил(а): {users[viewingFile.uploaderId]?.username || viewingFile.uploaderName || 'Неизвестный'}</span>
-                 </div>
-                 <a href={viewingFile.content} download={viewingFile.name} onClick={(e) => e.stopPropagation()} className="btn-primary px-4 py-2 text-xs flex items-center gap-2 rounded-xl">
-                   Скачать
-                 </a>
-              </div>
-           </div>
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-50 flex flex-col items-center justify-center p-4" onClick={() => setViewingFile(null)}>
+            <div className="w-full max-w-5xl flex justify-end pb-4">
+               <button onClick={() => setViewingFile(null)} className="text-white hover:text-zinc-300">
+                 <X className="w-8 h-8" />
+               </button>
+            </div>
+            <img src={viewingFile.content} alt={viewingFile.name} className="w-auto h-auto max-w-full max-h-[65vh] object-contain rounded-xl shadow-2xl mb-6" onClick={e => e.stopPropagation()} />
+            
+            <div className="w-full max-w-5xl flex flex-col sm:flex-row justify-between items-start sm:items-center text-white gap-4" onClick={e => e.stopPropagation()}>
+               <div className="flex flex-col min-w-0 w-full sm:w-auto">
+                 <span className="font-medium text-base sm:text-lg truncate max-w-full">{viewingFile.name}</span>
+                 <span className="text-xs sm:text-sm text-zinc-400 truncate max-w-full">Загрузил: {users[viewingFile.uploaderId]?.username || viewingFile.uploaderName || 'Неизвестный'}</span>
+               </div>
+               <a href={viewingFile.content} download={viewingFile.name} className="btn-primary w-full sm:w-auto px-6 py-3 text-sm flex justify-center items-center rounded-xl font-medium shrink-0">
+                 Скачать
+               </a>
+            </div>
         </div>
       )}
     </div>
