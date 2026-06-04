@@ -84,7 +84,12 @@ export default function App() {
     if (!username || !password) return;
     
     // Auto-generate email if only username is provided
-    const email = username.includes('@') ? username : `${username.replace(/[^a-zA-Z0-9]/g, '') || 'user'}@app.local`;
+    let email = username;
+    if (!username.includes('@')) {
+       // Convert each character to hex to ensure unique valid emails for cyrillic/unicode names
+       const safeName = Array.from(username).map(c => c.charCodeAt(0).toString(16)).join('');
+       email = `${safeName}@app.local`;
+    }
 
     try {
       if (isRegistering) {
