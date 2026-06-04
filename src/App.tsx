@@ -209,11 +209,11 @@ export default function App() {
 
         <div className="flex items-center space-x-4">
            {userProfile && (
-             <button onClick={() => setActiveTab('profile')} className="hidden sm:flex items-center gap-3 py-1.5 px-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
-               <div className="w-7 h-7 rounded-full bg-white/10 overflow-hidden">
+             <button onClick={() => setActiveTab('profile')} className="flex items-center gap-2 sm:gap-3 py-1.5 px-2 sm:px-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors max-w-[120px] sm:max-w-[200px]">
+               <div className="w-7 h-7 shrink-0 rounded-full bg-white/10 overflow-hidden">
                  {userProfile.avatarUrl ? <img src={userProfile.avatarUrl} className="w-full h-full object-cover" /> : <UserIcon className="w-3.5 h-3.5 mx-auto mt-1.5 text-zinc-400" />}
                </div>
-               <span className="text-xs font-medium text-white pr-2">{userProfile.username || 'Профиль'}</span>
+               <span className="text-[10px] sm:text-xs font-medium text-white pr-1 sm:pr-2 truncate">{userProfile.username || 'Профиль'}</span>
              </button>
            )}
            <button onClick={logout} className="w-10 h-10 shrink-0 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 flex items-center justify-center text-zinc-400 hover:text-white transition-colors">
