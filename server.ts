@@ -35,12 +35,15 @@ webPush.setVapidDetails(
 // Authenticate server client so it complies with firestore.rules
 const authenticateServer = async () => {
   try {
-    await signInWithEmailAndPassword(auth, 'system-notifications@app.local', 'SecureSystemPassword123!').catch(async () => {
+    await signInWithEmailAndPassword(auth, 'system-notifications@app.local', 'SecureSystemPassword123!').catch(async (authErr: any) => {
+      fs.appendFileSync(path.join(process.cwd(), 'server.log'), `[AUTH INFO] Sign-in failed, trying to create system user: ${authErr.message}\n`);
       await createUserWithEmailAndPassword(auth, 'system-notifications@app.local', 'SecureSystemPassword123!');
     });
     console.log('Firebase system-notifications user authenticated successfully');
-  } catch (e) {
+    fs.appendFileSync(path.join(process.cwd(), 'server.log'), `[AUTH SUCCESS] system-notifications authenticated\n`);
+  } catch (e: any) {
     console.error('Firebase server sign in failed. Retrying in 5 seconds...', e);
+    fs.appendFileSync(path.join(process.cwd(), 'server.log'), `[AUTH ERROR] Firebase sign-in/up failed: ${e.message}. Retrying in 5s\n`);
     setTimeout(authenticateServer, 5000);
   }
 };
@@ -190,6 +193,12 @@ const setupDatabaseListeners = () => {
 };
 
 async function start() {
+  try {
+    fs.appendFileSync(path.join(process.cwd(), 'server.log'), `[START] Server boot sequence initiated at ${new Date().toISOString()}\n`);
+  } catch (err) {
+    console.error('Initial log write failed', err);
+  }
+
   await authenticateServer();
   setupDatabaseListeners();
 
@@ -197,6 +206,17 @@ async function start() {
   const PORT = 3000;
 
   app.use(express.json());
+
+  // Request logger to help diagnose background issues
+  app.use((req, res, next) => {
+    try {
+      const logMsg = `[${new Date().toISOString()}] ${req.method} ${req.url} (Body: ${JSON.stringify(req.body)})\n`;
+      fs.appendFileSync(path.join(process.cwd(), 'server.log'), logMsg);
+    } catch (err) {
+      console.error('Logging failed', err);
+    }
+    next();
+  });
 
   // API Route - Get Public VAPID Key
   app.get('/api/push/vapid-public-key', (req, res) => {
@@ -230,24 +250,36 @@ async function start() {
 
   // API Route - Trigger background push test for testing closed-app delivery
   app.post('/api/push/test', async (req, res) => {
-    const { userId } = req.body;
-    if (!userId) {
-      return res.status(400).json({ error: 'Missing userId' });
+    try {
+      const { userId } = req.body;
+      if (!userId) {
+        fs.appendFileSync(path.join(process.cwd(), 'server.log'), `[ERROR] Missing userId in /api/push/test\n`);
+        return res.status(400).json({ error: 'Missing userId' });
+      }
+
+      fs.appendFileSync(path.join(process.cwd(), 'server.log'), `[INFO] Triggering push test for user ${userId}\n`);
+      console.log(`Triggering background push test for userId: ${userId} in 3 seconds`);
+      
+      setTimeout(async () => {
+        try {
+          await sendPushToUser(
+            userId,
+            'Тестовый сигнал 🧪',
+            'Фоновые push-уведомления работают круглосуточно (24/7), когда приложение закрыто!'
+          );
+        } catch (subErr: any) {
+          fs.appendFileSync(path.join(process.cwd(), 'server.log'), `[ERROR OUT] Background send failed: ${subErr.message}\n`);
+        }
+      }, 3000);
+
+      res.json({
+        success: true,
+        message: 'Тест запущен. Сверните приложение или заблокируйте экран. Сигнал поступит через 3 секунды.'
+      });
+    } catch (e: any) {
+      fs.appendFileSync(path.join(process.cwd(), 'server.log'), `[FATAL] /api/push/test error: ${e.message}\n`);
+      res.status(500).json({ error: e.message });
     }
-
-    console.log(`Triggering background push test for userId: ${userId} in 3 seconds`);
-    setTimeout(async () => {
-      await sendPushToUser(
-        userId,
-        'Тестовый сигнал 🧪',
-        'Фоновые push-уведомления работают круглосуточно (24/7), когда приложение закрыто!'
-      );
-    }, 3000);
-
-    res.json({
-      success: true,
-      message: 'Тест запущен. Сверните приложение или заблокируйте экран. Сигнал поступит через 3 секунды.'
-    });
   });
 
   // Integrate Vite for development, or serve built assets in production

@@ -44,6 +44,30 @@ export function ProfileModule({ user }: { user: User }) {
 
              const convertedKey = urlBase64ToUint8Array(publicKey);
              let sub = await reg.pushManager.getSubscription();
+             if (sub) {
+                 const subKey = sub.options.applicationServerKey;
+                 if (subKey) {
+                     const subKeyArr = new Uint8Array(subKey);
+                     let match = subKeyArr.length === convertedKey.length;
+                     if (match) {
+                         for (let i = 0; i < convertedKey.length; i++) {
+                             if (subKeyArr[i] !== convertedKey[i]) {
+                                 match = false;
+                                 break;
+                             }
+                         }
+                     }
+                     if (!match) {
+                         console.log('Stale VAPID key detected, unsubscribing...');
+                         await sub.unsubscribe();
+                         sub = null;
+                     }
+                 } else {
+                     await sub.unsubscribe();
+                     sub = null;
+                 }
+             }
+
              if (!sub) {
                 sub = await reg.pushManager.subscribe({
                    userVisibleOnly: true,
@@ -73,10 +97,22 @@ export function ProfileModule({ user }: { user: User }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.uid })
       });
+      
+      if (!res.ok) {
+        let errText = "";
+        try {
+          const errData = await res.json();
+          errText = errData.error || errData.message || JSON.stringify(errData);
+        } catch {
+          errText = await res.text();
+        }
+        throw new Error(`Ошибка сервера (${res.status}): ${errText.slice(0, 100)}`);
+      }
+
       const data = await res.json();
       setTestMessage(data.message || "Тест запущен!");
-    } catch (e) {
-      setTestMessage("Не удалось соединиться с фоновым пуш-модулем.");
+    } catch (e: any) {
+      setTestMessage(`Не удалось соединиться с фоновым пуш-модулем: ${e.message || e}`);
     }
   };
 
@@ -119,7 +155,7 @@ export function ProfileModule({ user }: { user: User }) {
   if (loading) return <div className="text-center mt-20 text-zinc-600 uppercase tracking-widest text-[10px] animate-pulse">Синхронизация Профиля...</div>;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-36">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end border-b border-white/[0.08] pb-6 mb-8 gap-4">
         <div>
           <h2 className="text-4xl font-serif text-white tracking-wide">Профиль</h2>

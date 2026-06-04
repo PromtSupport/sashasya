@@ -127,8 +127,32 @@ export default function App() {
 
             const convertedKey = urlBase64ToUint8Array(publicKey);
 
-            // Subscribe
+            // Subscribe with stale validation check
             let sub = await reg.pushManager.getSubscription();
+            if (sub) {
+                const subKey = sub.options.applicationServerKey;
+                if (subKey) {
+                    const subKeyArr = new Uint8Array(subKey);
+                    let match = subKeyArr.length === convertedKey.length;
+                    if (match) {
+                        for (let i = 0; i < convertedKey.length; i++) {
+                            if (subKeyArr[i] !== convertedKey[i]) {
+                                match = false;
+                                break;
+                            }
+                        }
+                    }
+                    if (!match) {
+                        console.log('Stale VAPID key detected, unsubscribing...');
+                        await sub.unsubscribe();
+                        sub = null;
+                    }
+                } else {
+                    await sub.unsubscribe();
+                    sub = null;
+                }
+            }
+
             if (!sub) {
                 sub = await reg.pushManager.subscribe({
                     userVisibleOnly: true,
