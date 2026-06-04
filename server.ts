@@ -4,7 +4,7 @@ import fs from 'fs';
 import webPush from 'web-push';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { getFirestore, collection, onSnapshot, query, orderBy, limit, doc, setDoc, getDocs, where, deleteDoc } from 'firebase/firestore';
+import { getFirestore, collection, onSnapshot, query, orderBy, limit, doc, setDoc, getDocs, where, deleteDoc, getDoc } from 'firebase/firestore';
 import { createServer as createViteServer } from 'vite';
 
 // Read firebase configuration from config file

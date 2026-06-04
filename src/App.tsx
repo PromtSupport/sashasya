@@ -224,7 +224,7 @@ export default function App() {
     let email = username;
     if (!username.includes('@')) {
        // Convert each character to hex to ensure unique valid emails for cyrillic/unicode names
-       const safeName = Array.from(username).map(c => c.charCodeAt(0).toString(16)).join('');
+       const safeName = username.split('').map(c => c.charCodeAt(0).toString(16)).join('');
        email = `${safeName}@app.local`;
     }
 
@@ -326,7 +326,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col relative bg-[#030303] pb-32 overflow-hidden selection:bg-indigo-500/30">
+    <div className="min-h-screen flex flex-col relative bg-[#030303] pb-32 overflow-x-hidden selection:bg-indigo-500/30">
       
       {/* Ambient Moving Orbs Overlay (Optimized) */}
       <div className="fixed inset-0 z-0 pointer-events-none flex items-center justify-center opacity-30">
@@ -364,7 +364,7 @@ export default function App() {
         </div>
       </header>
       
-      <main className="max-w-7xl mx-auto w-full px-6 sm:px-12 pt-4 sm:pt-12 pb-32 flex-grow relative z-10">
+      <main className="max-w-7xl mx-auto w-full px-6 sm:px-12 pt-4 sm:pt-12 pb-48 flex-grow relative z-10">
         <AnimatePresence mode="popLayout">
           <motion.div
             key={activeTab}

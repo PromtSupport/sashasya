@@ -25,7 +25,7 @@ export function NetworkModule() {
 
   useEffect(() => {
     const unsubUsers = onSnapshot(collection(db, 'users'), (snap) => {
-      const allUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const allUsers = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
       const uniqueMap = new Map();
       allUsers.forEach(u => {
          const key = u.username || u.email || u.id;
