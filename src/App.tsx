@@ -386,7 +386,7 @@ export default function App() {
         </div>
       </header>
       
-      <main className="max-w-7xl mx-auto w-full px-6 sm:px-12 pt-4 sm:pt-12 pb-48 flex-grow relative z-10">
+      <main className="max-w-7xl mx-auto w-full px-6 sm:px-12 pt-4 sm:pt-12 pb-64 flex-grow relative z-10">
         <AnimatePresence mode="popLayout">
           <motion.div
             key={activeTab}

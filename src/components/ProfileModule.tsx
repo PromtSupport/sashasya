@@ -32,8 +32,9 @@ export function ProfileModule({ user }: { user: User }) {
              const { publicKey } = await keyRes.json();
              
              const urlBase64ToUint8Array = (base64String: string) => {
-                 const padding = '='.repeat((4 - base64String.length % 4) % 4);
-                 const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+                 const str = (base64String || '').trim().replace(/\-/g, '+').replace(/_/g, '/');
+                 const padding = '='.repeat((4 - str.length % 4) % 4);
+                 const base64 = str + padding;
                  const rawData = window.atob(base64);
                  const outputArray = new Uint8Array(rawData.length);
                  for (let i = 0; i < rawData.length; ++i) {
@@ -112,7 +113,12 @@ export function ProfileModule({ user }: { user: User }) {
       const data = await res.json();
       setTestMessage(data.message || "Тест запущен!");
     } catch (e: any) {
-      setTestMessage(`Не удалось соединиться с фоновым пуш-модулем: ${e.message || e}`);
+      if (e && e.name === "InvalidCharacterError") {
+         setTestMessage(`Не удалось соединиться с фоновым пуш-модулем: Устройство настроено неверно или имеет несовместимую кодировку.`);
+      } else {
+         setTestMessage(`Не удалось соединиться с фоновым пуш-модулем: ${e.message || e}`);
+      }
+      console.error("Push test error:", e);
     }
   };
 
@@ -155,7 +161,7 @@ export function ProfileModule({ user }: { user: User }) {
   if (loading) return <div className="text-center mt-20 text-zinc-600 uppercase tracking-widest text-[10px] animate-pulse">Синхронизация Профиля...</div>;
 
   return (
-    <div className="space-y-8 pb-36">
+    <div className="space-y-8 pb-56">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end border-b border-white/[0.08] pb-6 mb-8 gap-4">
         <div>
           <h2 className="text-4xl font-serif text-white tracking-wide">Профиль</h2>
