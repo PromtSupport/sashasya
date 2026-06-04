@@ -22,6 +22,8 @@
         "size": { "type": "string" },
         "type": { "type": "string" },
         "content": { "type": "string" },
+        "uploaderId": { "type": "string" },
+        "uploaderName": { "type": "string" },
         "createdAt": { "type": "string" },
         "updatedAt": { "type": "string" }
       },
@@ -36,11 +38,10 @@
         "description": { "type": "string" },
         "status": { "type": "string", "enum": ["todo", "progress", "done"] },
         "assignee": { "type": "string" },
-        "deadline": { "type": "string" },
         "createdAt": { "type": "string" },
         "updatedAt": { "type": "string" }
       },
-      "required": ["title", "description", "status", "assignee", "deadline", "createdAt", "updatedAt"]
+      "required": ["title", "description", "status", "assignee", "createdAt", "updatedAt"]
     },
     "Event": {
       "title": "Event",
@@ -75,12 +76,39 @@
       "type": "object",
       "properties": {
         "username": { "type": "string" },
+        "email": { "type": "string" },
         "theme": { "type": "string" },
         "status": { "type": "string" },
+        "avatarUrl": { "type": "string" },
         "createdAt": { "type": "string" },
         "updatedAt": { "type": "string" }
       },
       "required": ["username", "createdAt", "updatedAt"]
+    },
+    "Message": {
+      "title": "Direct Message",
+      "description": "A direct message between two users",
+      "type": "object",
+      "properties": {
+        "senderId": { "type": "string" },
+        "receiverId": { "type": "string" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["senderId", "receiverId", "content", "createdAt"]
+    },
+    "Activity": {
+      "title": "Global Activity Notification",
+      "description": "A notification about actions in the platform",
+      "type": "object",
+      "properties": {
+        "actorId": { "type": "string" },
+        "actorName": { "type": "string" },
+        "actionType": { "type": "string" },
+        "targetName": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["actorId", "actorName", "actionType", "targetName", "createdAt"]
     }
   },
   "firestore": {
@@ -107,6 +135,14 @@
     "/safeEntries/{safeId}": {
       "schema": { "$ref": "#/entities/SafeEntry" },
       "description": "Secure passwords and API credentials"
+    },
+    "/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/Message" },
+      "description": "Direct messages"
+    },
+    "/activities/{activityId}": {
+      "schema": { "$ref": "#/entities/Activity" },
+      "description": "Global activity feed"
     }
   }
 }

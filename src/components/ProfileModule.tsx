@@ -90,7 +90,13 @@ export function ProfileModule({ user }: { user: User }) {
             <div className="w-full bg-white/[0.02] border border-white/[0.05] rounded-2xl p-4 space-y-3 text-left">
                <div className="flex justify-between items-center text-[10px] uppercase tracking-widest font-mono">
                   <span className="text-zinc-500">Статус</span>
-                  <span className="text-white font-medium flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> Активен</span>
+                  <span className="text-white font-medium flex items-center gap-2">
+                     {profile?.updatedAt && (new Date().getTime() - new Date(profile.updatedAt).getTime() < 5 * 60000) ? (
+                        <><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> В сети</>
+                     ) : (
+                        <><div className="w-1.5 h-1.5 rounded-full bg-zinc-500"></div> Оффлайн</>
+                     )}
+                  </span>
                </div>
             </div>
          </div>

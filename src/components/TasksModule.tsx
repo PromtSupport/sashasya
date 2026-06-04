@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 import { Plus, X } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -18,6 +18,20 @@ export function TasksModule() {
     return unsub;
   }, []);
 
+  const logActivity = async (actionType: string, targetName: string) => {
+    const user = auth.currentUser;
+    if (!user) return;
+    try {
+      await addDoc(collection(db, 'activities'), {
+        actorId: user.uid,
+        actorName: user.displayName || user.email || 'Неизвестный',
+        actionType,
+        targetName,
+        createdAt: serverTimestamp()
+      });
+    } catch(e) { console.error('Failed to log activity', e); }
+  };
+
   const addTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title) return;
@@ -30,17 +44,20 @@ export function TasksModule() {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
+    await logActivity("создал(а) задачу", title);
     setTitle("");
     setDesc("");
     setIsAdding(false);
   };
 
-  const updateStatus = async (id: string, status: string) => {
+  const updateStatus = async (id: string, status: string, taskTitle: string) => {
     await updateDoc(doc(db, 'tasks', id), { status, updatedAt: serverTimestamp() });
+    await logActivity("обновил(а) статус задачи", taskTitle);
   };
 
-  const removeTask = async (id: string) => {
+  const removeTask = async (id: string, taskTitle: string) => {
     await deleteDoc(doc(db, 'tasks', id));
+    await logActivity("удалил(а) задачу", taskTitle);
   };
 
   const columns = [
@@ -85,10 +102,10 @@ export function TasksModule() {
                        <span className="text-zinc-500">{task.deadline}</span>
                     </div>
                     <div className="flex gap-2 mt-3 -mx-1">
-                      <button onClick={() => updateStatus(task.id, col.next)} className="btn-secondary flex-1 py-1.5 text-xs">
+                      <button onClick={() => updateStatus(task.id, col.next, task.title)} className="btn-secondary flex-1 py-1.5 text-xs">
                         {col.nextLabel}
                       </button>
-                      <button onClick={() => removeTask(task.id)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-500/20 text-zinc-500 hover:text-red-400 transition-colors">
+                      <button onClick={() => removeTask(task.id, task.title)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-500/20 text-zinc-500 hover:text-red-400 transition-colors">
                         <X className="w-4 h-4" />
                       </button>
                     </div>

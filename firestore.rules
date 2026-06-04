@@ -10,7 +10,7 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read, write: if isSignedIn() && request.auth.uid == userId;
+      allow read, write: if isSignedIn();
     }
     match /folders/{folderId} {
       allow read, write: if isSignedIn();
@@ -25,6 +25,12 @@ service cloud.firestore {
       allow read, write: if isSignedIn();
     }
     match /safeEntries/{safeId} {
+      allow read, write: if isSignedIn();
+    }
+    match /messages/{messageId} {
+      allow read, write: if isSignedIn();
+    }
+    match /activities/{activityId} {
       allow read, write: if isSignedIn();
     }
   }

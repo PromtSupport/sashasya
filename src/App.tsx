@@ -1,18 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import { signInAnonymously, signOut, onAuthStateChanged, User } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, User, updateProfile } from 'firebase/auth';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { motion, AnimatePresence } from 'motion/react';
-import { Folder, Layers, Calendar, Lock, LogOut, Activity, User as UserIcon } from 'lucide-react';
+import { Folder, Layers, Calendar, Lock, LogOut, Activity, User as UserIcon, Users, Bell } from 'lucide-react';
 import { StorageModule } from './components/StorageModule';
 import { TasksModule } from './components/TasksModule';
 import { CalendarModule } from './components/CalendarModule';
 import { MetricsModule } from './components/MetricsModule';
 import { SafeModule } from './components/SafeModule';
 import { ProfileModule } from './components/ProfileModule';
+import { NetworkModule } from './components/NetworkModule';
+import { NotificationsModule } from './components/NotificationsModule';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("storage");
   const [loading, setLoading] = useState(true);
 
@@ -22,36 +25,89 @@ export default function App() {
   const [authError, setAuthError] = useState("");
 
   useEffect(() => {
+    let unsubProfile: (() => void) | null = null;
+    let heartbeatInterval: any = null;
+    
+    // One-time cleanup for users that are NOT Александр or Ася
+    const cleanupUsers = async () => {
+       try {
+         const snap = await import('firebase/firestore').then(firestore => firestore.getDocs(firestore.collection(db, 'users')));
+         for (const d of snap.docs) {
+           const data = d.data();
+           const name = data.username || data.email;
+           if (name !== 'Александр' && name !== 'Ася' && d.id !== auth.currentUser?.uid) {
+               await import('firebase/firestore').then(firestore => firestore.deleteDoc(firestore.doc(db, 'users', d.id)));
+           }
+         }
+       } catch (e) {
+         console.error('Failed to cleanup users:', e);
+       }
+    };
+
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
+      if (u) {
+        import('firebase/firestore').then(({ onSnapshot, doc, updateDoc }) => {
+           unsubProfile = onSnapshot(doc(db, "users", u.uid), (snap) => {
+              if (snap.exists()) setUserProfile(snap.data());
+           });
+           
+           // Heartbeat
+           const updateHeartbeat = () => {
+               updateDoc(doc(db, "users", u.uid), {
+                   updatedAt: new Date().toISOString()
+               }).catch(() => {});
+           };
+           updateHeartbeat();
+           heartbeatInterval = setInterval(updateHeartbeat, 60000); // 1 minute
+           
+           // Run cleanup
+           cleanupUsers();
+        });
+      } else {
+        setUserProfile(null);
+        if (unsubProfile) unsubProfile();
+        if (heartbeatInterval) clearInterval(heartbeatInterval);
+      }
       setLoading(false);
     });
-    return unsub;
+    return () => {
+      unsub();
+      if (unsubProfile) unsubProfile();
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
+    };
   }, []);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError("");
     if (!username || !password) return;
+    
+    // Auto-generate email if only username is provided
+    const email = username.includes('@') ? username : `${username.replace(/[^a-zA-Z0-9]/g, '') || 'user'}@app.local`;
+
     try {
-      const cred = await signInAnonymously(auth);
-      
       if (isRegistering) {
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        await updateProfile(cred.user, { displayName: username });
         await setDoc(doc(db, "users", cred.user.uid), {
              username,
+             email,
              theme: "dark",
              status: "Active operator",
+             avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${cred.user.uid}`,
              createdAt: new Date().toISOString(),
              updatedAt: new Date().toISOString()
         });
       } else {
+        const cred = await signInWithEmailAndPassword(auth, email, password);
+        // Optionally update last login
         await setDoc(doc(db, "users", cred.user.uid), {
-             username,
              updatedAt: new Date().toISOString()
         }, { merge: true });
       }
     } catch (e: any) {
-      setAuthError(e.message.replace("Firebase:", "System error:"));
+      setAuthError(e.message.replace("Firebase:", "Системная ошибка:").replace("auth/invalid-credential", "Неверный логин или пароль").replace("auth/email-already-in-use", "Логин уже используется"));
     }
   };
 
@@ -118,6 +174,8 @@ export default function App() {
       case "storage": return <StorageModule />;
       case "tasks": return <TasksModule />;
       case "chronos": return <CalendarModule />;
+      case "network": return <NetworkModule />;
+      case "notifications": return <NotificationsModule />;
       case "metrics": return <MetricsModule />;
       case "safe": return <SafeModule />;
       case "profile": return <ProfileModule user={user} />;
@@ -150,6 +208,14 @@ export default function App() {
         </div>
 
         <div className="flex items-center space-x-4">
+           {userProfile && (
+             <button onClick={() => setActiveTab('profile')} className="hidden sm:flex items-center gap-3 py-1.5 px-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+               <div className="w-7 h-7 rounded-full bg-white/10 overflow-hidden">
+                 {userProfile.avatarUrl ? <img src={userProfile.avatarUrl} className="w-full h-full object-cover" /> : <UserIcon className="w-3.5 h-3.5 mx-auto mt-1.5 text-zinc-400" />}
+               </div>
+               <span className="text-xs font-medium text-white pr-2">{userProfile.username || 'Профиль'}</span>
+             </button>
+           )}
            <button onClick={logout} className="w-10 h-10 shrink-0 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 flex items-center justify-center text-zinc-400 hover:text-white transition-colors">
              <LogOut className="w-4 h-4 ml-1" />
            </button>
@@ -182,6 +248,8 @@ export default function App() {
             { id: "storage", icon: Folder, label: "Хранилище", color: "hover:text-amber-400 hover:bg-amber-400/10" },
             { id: "tasks", icon: Layers, label: "Задачи", color: "hover:text-sky-400 hover:bg-sky-400/10" },
             { id: "chronos", icon: Calendar, label: "Время", color: "hover:text-emerald-400 hover:bg-emerald-400/10" },
+            { id: "network", icon: Users, label: "Команда", color: "hover:text-fuchsia-400 hover:bg-fuchsia-400/10" },
+            { id: "notifications", icon: Bell, label: "События", color: "hover:text-amber-300 hover:bg-amber-300/10" },
             { id: "metrics", icon: Activity, label: "Метрики", color: "hover:text-rose-400 hover:bg-rose-400/10" },
             { id: "safe", icon: Lock, label: "Ключи", color: "hover:text-indigo-400 hover:bg-indigo-400/10" },
             { id: "profile", icon: UserIcon, label: "Профиль", color: "hover:text-purple-400 hover:bg-purple-400/10" }
@@ -191,7 +259,11 @@ export default function App() {
               onClick={() => setActiveTab(tab.id)}
               className={`relative group flex flex-col items-center justify-center shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-full transition-all duration-300 ${activeTab === tab.id ? 'bg-white/10 text-white shadow-inner scale-110' : `text-zinc-500 scale-100 ${tab.color}`}`}
             >
-              <tab.icon className="w-5 h-5 sm:w-6 sm:h-6 shrink-0 transition-transform duration-300 group-hover:scale-110 group-hover:-translate-y-0.5" strokeWidth={1.5} />
+              {(tab.id === 'profile' && userProfile?.avatarUrl) ? (
+                 <img src={userProfile.avatarUrl} className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover shrink-0 transition-transform duration-300 group-hover:scale-110 group-hover:-translate-y-0.5" alt="Avatar" />
+              ) : (
+                 <tab.icon className="w-5 h-5 sm:w-6 sm:h-6 shrink-0 transition-transform duration-300 group-hover:scale-110 group-hover:-translate-y-0.5" strokeWidth={1.5} />
+              )}
               {activeTab === tab.id && <motion.div layoutId="dock-indicator" className="absolute -bottom-1.5 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)]" />}
               
               <div className="absolute -top-14 opacity-0 group-hover:opacity-100 group-hover:-translate-y-1 transition-all duration-300 glass-panel text-white text-[10px] px-3 py-1.5 shadow-lg pointer-events-none whitespace-nowrap font-medium tracking-wide border-t border-white/20">
