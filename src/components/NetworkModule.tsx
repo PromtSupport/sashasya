@@ -12,6 +12,17 @@ export function NetworkModule() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const currentUser = auth.currentUser;
 
+  const getRelativeTime = (timestamp?: string) => {
+    if (!timestamp) return 'a while ago';
+    const diffMins = Math.floor((new Date().getTime() - new Date(timestamp).getTime()) / 60000);
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} min${diffMins === 1 ? '' : 's'} ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+  };
+
   useEffect(() => {
     const unsubUsers = onSnapshot(collection(db, 'users'), (snap) => {
       const allUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -109,7 +120,7 @@ export function NetworkModule() {
                 <div className="flex-grow min-w-0">
                   <p className="text-sm text-white font-medium truncate">{u.username || u.email || 'Аноним'}</p>
                   <p className="text-[10px] text-zinc-500 truncate">
-                    {u.id === currentUser?.uid ? 'Вы' : (u.updatedAt && (new Date().getTime() - new Date(u.updatedAt).getTime() < 5 * 60000) ? 'В сети' : 'Не в сети')}
+                    {u.id === currentUser?.uid ? 'Вы' : (u.updatedAt && (new Date().getTime() - new Date(u.updatedAt).getTime() < 5 * 60000) ? 'В сети' : `Last active ${getRelativeTime(u.updatedAt)}`)}
                   </p>
                 </div>
                 {u.id !== currentUser?.uid && <MessageSquare className={`w-4 h-4 rounded-full ${selectedUser?.id === u.id ? 'text-indigo-400' : 'text-zinc-600'}`} />}
@@ -147,7 +158,7 @@ export function NetworkModule() {
                           </>
                         ) : (
                           <>
-                            <span className="text-zinc-500 mr-1">●</span> Был(а) в сети {selectedUser.updatedAt ? new Date(selectedUser.updatedAt).toLocaleString('ru-RU', {hour: '2-digit', minute:'2-digit'}) : 'давно'}
+                            <span className="text-zinc-500 mr-1">●</span> Last active {getRelativeTime(selectedUser.updatedAt)}
                           </>
                         );
                       })()}

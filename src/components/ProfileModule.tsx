@@ -11,6 +11,7 @@ export function ProfileModule({ user }: { user: User }) {
   const [isEditing, setIsEditing] = useState(false);
   const [status, setStatus] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [username, setUsername] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -21,6 +22,7 @@ export function ProfileModule({ user }: { user: User }) {
         setProfile(d.data());
         setStatus(d.data().status || "");
         setAvatarUrl(d.data().avatarUrl || "");
+        setUsername(d.data().username || "");
       }
       setLoading(false);
     };
@@ -31,9 +33,10 @@ export function ProfileModule({ user }: { user: User }) {
     await updateDoc(doc(db, "users", user.uid), {
       status,
       avatarUrl,
+      username,
       updatedAt: new Date().toISOString()
     });
-    setProfile({ ...profile, status, avatarUrl });
+    setProfile({ ...profile, status, avatarUrl, username });
     setIsEditing(false);
   };
 
@@ -111,6 +114,16 @@ export function ProfileModule({ user }: { user: User }) {
                </div>
                
                <div className="space-y-6 max-w-md">
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-widest text-zinc-500 mb-3">Имя пользователя (Никнейм)</label>
+                    {isEditing ? (
+                       <input value={username} onChange={e=>setUsername(e.target.value)} className="w-full bg-transparent border border-white/10 rounded-xl px-5 py-3 text-sm text-white outline-none focus:border-white/30" placeholder="Введите имя..." />
+                    ) : (
+                       <div className="w-full bg-white/[0.02] border border-white/[0.05] rounded-xl px-5 py-3 text-sm text-zinc-300">
+                         {profile?.username || "Имя не установлено"}
+                       </div>
+                    )}
+                  </div>
                   <div>
                     <label className="block text-[10px] uppercase tracking-widest text-zinc-500 mb-3">Оперативный Статус</label>
                     {isEditing ? (

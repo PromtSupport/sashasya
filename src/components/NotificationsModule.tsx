@@ -57,8 +57,12 @@ export function NotificationsModule() {
               key={act.id} 
               className="glass-card p-5 flex items-start gap-4 rounded-2xl"
             >
-              <div className="w-10 h-10 rounded-full bg-white/[0.05] border border-white/10 flex flex-shrink-0 items-center justify-center">
-                 {getIcon(act.actionType || '')}
+              <div className="w-10 h-10 rounded-full bg-white/[0.05] border border-white/10 flex flex-shrink-0 items-center justify-center overflow-hidden">
+                 {users[act.actorId]?.avatarUrl ? (
+                   <img src={users[act.actorId].avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                 ) : (
+                   getIcon(act.actionType || '')
+                 )}
               </div>
               <div>
                 <p className="text-zinc-300 text-sm font-medium">
