@@ -7,7 +7,6 @@ import { Folder, Layers, Calendar, Lock, LogOut, Activity, User as UserIcon, Use
 import { StorageModule } from './components/StorageModule';
 import { TasksModule } from './components/TasksModule';
 import { CalendarModule } from './components/CalendarModule';
-import { MetricsModule } from './components/MetricsModule';
 import { SafeModule } from './components/SafeModule';
 import { ProfileModule } from './components/ProfileModule';
 import { NetworkModule } from './components/NetworkModule';
@@ -318,7 +317,6 @@ export default function App() {
       case "chronos": return <CalendarModule />;
       case "network": return <NetworkModule />;
       case "notifications": return <NotificationsModule />;
-      case "metrics": return <MetricsModule />;
       case "safe": return <SafeModule />;
       case "profile": return <ProfileModule user={user} />;
       default: return null;
@@ -392,7 +390,6 @@ export default function App() {
             { id: "chronos", icon: Calendar, label: "Время", color: "hover:text-emerald-400 hover:bg-emerald-400/10" },
             { id: "network", icon: Users, label: "Команда", color: "hover:text-fuchsia-400 hover:bg-fuchsia-400/10" },
             { id: "notifications", icon: Bell, label: "События", color: "hover:text-amber-300 hover:bg-amber-300/10" },
-            { id: "metrics", icon: Activity, label: "Метрики", color: "hover:text-rose-400 hover:bg-rose-400/10" },
             { id: "safe", icon: Lock, label: "Ключи", color: "hover:text-indigo-400 hover:bg-indigo-400/10" },
             { id: "profile", icon: UserIcon, label: "Профиль", color: "hover:text-purple-400 hover:bg-purple-400/10" }
           ].map(tab => (
