@@ -109,6 +109,25 @@
         "createdAt": { "type": "string" }
       },
       "required": ["actorId", "actorName", "actionType", "targetName", "createdAt"]
+    },
+    "PushSubscription": {
+      "title": "Push Subscription",
+      "description": "Web Push subscription detail for a user device",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "endpoint": { "type": "string" },
+        "keys": {
+          "type": "object",
+          "properties": {
+            "p256dh": { "type": "string" },
+            "auth": { "type": "string" }
+          },
+          "required": ["p256dh", "auth"]
+        },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["userId", "endpoint", "keys", "createdAt"]
     }
   },
   "firestore": {
@@ -143,6 +162,10 @@
     "/activities/{activityId}": {
       "schema": { "$ref": "#/entities/Activity" },
       "description": "Global activity feed"
+    },
+    "/push_subscriptions/{subId}": {
+      "schema": { "$ref": "#/entities/PushSubscription" },
+      "description": "Push Subscriptions for user devices"
     }
   }
 }

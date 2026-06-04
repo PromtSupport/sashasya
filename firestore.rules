@@ -33,6 +33,9 @@ service cloud.firestore {
     match /activities/{activityId} {
       allow read, write: if isSignedIn();
     }
+    match /push_subscriptions/{subId} {
+      allow read, write: if isSignedIn();
+    }
   }
 }
 

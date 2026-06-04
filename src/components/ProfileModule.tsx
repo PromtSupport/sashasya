@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { User } from 'firebase/auth';
-import { Settings, Shield, UploadCloud } from 'lucide-react';
+import { Settings, Shield, UploadCloud, Bell, RefreshCw } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export function ProfileModule({ user }: { user: User }) {
@@ -12,8 +12,73 @@ export function ProfileModule({ user }: { user: User }) {
   const [status, setStatus] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [username, setUsername] = useState("");
+  
+  const [permission, setPermission] = useState<string>('Notification' in window ? Notification.permission : 'unsupported');
+  const [testSent, setTestSent] = useState(false);
+  const [testMessage, setTestMessage] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const requestNotificationPermission = async () => {
+    if (!('Notification' in window)) return;
+    const res = await Notification.requestPermission();
+    setPermission(res);
+    
+    if (res === 'granted' && 'serviceWorker' in navigator) {
+       try {
+          const reg = await navigator.serviceWorker.ready;
+          const keyRes = await fetch('/api/push/vapid-public-key');
+          if (keyRes.ok) {
+             const { publicKey } = await keyRes.json();
+             
+             const urlBase64ToUint8Array = (base64String: string) => {
+                 const padding = '='.repeat((4 - base64String.length % 4) % 4);
+                 const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+                 const rawData = window.atob(base64);
+                 const outputArray = new Uint8Array(rawData.length);
+                 for (let i = 0; i < rawData.length; ++i) {
+                     outputArray[i] = rawData.charCodeAt(i);
+                 }
+                 return outputArray;
+             };
+
+             const convertedKey = urlBase64ToUint8Array(publicKey);
+             let sub = await reg.pushManager.getSubscription();
+             if (!sub) {
+                sub = await reg.pushManager.subscribe({
+                   userVisibleOnly: true,
+                   applicationServerKey: convertedKey
+                });
+             }
+             
+             await fetch('/api/push/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ subscription: sub, userId: user.uid })
+             });
+             console.log('Synchronized via manual trigger');
+          }
+       } catch (e) {
+          console.error('Subscription error: ', e);
+       }
+    }
+  };
+
+  const triggerTestPush = async () => {
+    setTestSent(true);
+    setTestMessage("Связь с сервером установлена. Отправка сигнала...");
+    try {
+      const res = await fetch('/api/push/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.uid })
+      });
+      const data = await res.json();
+      setTestMessage(data.message || "Тест запущен!");
+    } catch (e) {
+      setTestMessage("Не удалось соединиться с фоновым пуш-модулем.");
+    }
+  };
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -145,14 +210,74 @@ export function ProfileModule({ user }: { user: User }) {
                </div>
             </div>
 
-            <div className="glass-card p-6 bg-white/[0.01]">
-               <span className="text-xs tracking-wider font-medium text-zinc-400 flex items-center gap-2 mb-3"><Shield className="w-3.5 h-3.5" /> Уровень Безопасности</span>
-               <p className="text-[11px] text-zinc-600 leading-relaxed max-w-lg">
-                 Терминал защищен сквозными изолированными структурами данных. Внешние запросы блокируются. Ваш токен сеанса не подлежит передаче.
-               </p>
-            </div>
-         </div>
-      </div>
+            <div className="glass-card p-8 space-y-6">
+                <div className="flex items-center gap-3 border-b border-white/[0.05] pb-4">
+                  <Bell className="w-5 h-5 text-amber-400" />
+                  <span className="text-sm tracking-wide font-medium text-white">Круглосуточные Push-Уведомления (24/7)</span>
+                </div>
+
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                   Вы добавили приложение на экран «Домой» (PWA). Чтобы получать уведомления моментально, даже когда приложение полностью закрыто или телефон заблокирован, настройте системные push-уведомления:
+                </p>
+
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white/[0.02] border border-white/[0.05] p-5 rounded-2xl">
+                   <div>
+                      <span className="block text-[10px] uppercase tracking-widest text-zinc-500 mb-1">Статус разрешений в браузере</span>
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                        permission === 'granted' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                        permission === 'denied' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
+                        'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                      }`}>
+                        {permission === 'granted' ? 'Разрешено' : permission === 'denied' ? 'Заблокировано' : 'Не установлено'}
+                      </span>
+                   </div>
+
+                   {permission !== 'granted' && (
+                     <button onClick={requestNotificationPermission} className="btn-secondary py-2 px-4 text-xs border border-white/[0.08] text-white cursor-pointer">
+                        Предоставить доступ
+                     </button>
+                   )}
+                </div>
+
+                {permission === 'granted' && (
+                  <div className="space-y-4">
+                     <span className="block text-[10px] uppercase tracking-widest text-zinc-500">Диагностика доставки 24/7</span>
+                     
+                     <div className="flex flex-col gap-3">
+                        <button 
+                          onClick={triggerTestPush}
+                          className="w-full bg-white/10 hover:bg-white/15 text-white active:scale-98 transition-all font-medium py-3 rounded-xl text-xs flex items-center justify-center gap-2 border border-white/10 cursor-pointer"
+                        >
+                           <RefreshCw className={`w-3.5 h-3.5 ${testSent ? 'animate-spin' : ''}`} />
+                           Запустить тест фоновой доставки
+                        </button>
+                        
+                        {testMessage && (
+                          <motion.div 
+                             initial={{ opacity: 0, y: 5 }}
+                             animate={{ opacity: 1, y: 0 }}
+                             className="text-[11px] text-zinc-400 text-center bg-black/40 border border-white/5 p-3 rounded-xl italic leading-relaxed"
+                          >
+                             {testMessage}
+                          </motion.div>
+                        )}
+                        
+                        <p className="text-[10px] text-zinc-500 text-center uppercase tracking-wider font-light leading-relaxed">
+                          * Нажмите кнопку, затем быстро заблокируйте телефон или сверните приложение. Через 3 секунды поступит пуш!
+                        </p>
+                     </div>
+                  </div>
+                )}
+             </div>
+
+             <div className="glass-card p-6 bg-white/[0.01]">
+                <span className="text-xs tracking-wider font-medium text-zinc-400 flex items-center gap-2 mb-3"><Shield className="w-3.5 h-3.5" /> Уровень Безопасности</span>
+                <p className="text-[11px] text-zinc-600 leading-relaxed max-w-lg">
+                  Терминал защищен сквозными изолированными структурами данных. Внешние запросы блокируются. Ваш токен сеанса не подлежит передаче.
+                </p>
+             </div>
+          </div>
+       </div>
     </div>
   );
 }
